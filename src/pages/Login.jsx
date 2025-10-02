@@ -6,9 +6,11 @@ export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
+    const [location, setLocation] = useState(""); // ✅ add location state
     const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [agreeTerms, setAgreeTerms] = useState(false);
 
     const navigate = useNavigate();
 
@@ -17,28 +19,62 @@ export default function Login() {
         setLoading(true);
         setError(null);
 
+        let authResponse;
+
         if (isSignUp) {
             // SIGN UP
-            const { data, error } = await supabase.auth.signUp({
+            authResponse = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: { full_name: fullName }
-                }
+                    data: { full_name: fullName, location: location }, // ✅ include location
+                },
             });
 
-            if (error) setError(error.message);
-            else navigate("/dashboard");
+            // Also insert into profiles table
+            const user = authResponse.data.user;
+            if (user) {
+                await supabase.from("profiles").insert([
+                    {
+                        id: user.id,
+                        full_name: fullName,
+                        location: location,
+                        is_admin: false,
+                        pickup_status: false,
+                    },
+                ]);
+            }
         } else {
             // LOGIN
-            const { error } = await supabase.auth.signInWithPassword({
+            authResponse = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
-
-            if (error) setError(error.message);
-            else navigate("/dashboard");
         }
+
+        const { data, error: authError } = authResponse;
+        if (authError) {
+            setError(authError.message);
+            setLoading(false);
+            return;
+        }
+
+        // ✅ Fetch the profile of the logged-in user
+        const user = data.user || data.session?.user;
+        if (user) {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_admin")
+                .eq("id", user.id)
+                .single();
+
+            if (profile?.is_admin) {
+                navigate("/admin");
+            } else {
+                navigate("/dashboard");
+            }
+        }
+
         setLoading(false);
     }
 
@@ -51,14 +87,25 @@ export default function Login() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {isSignUp && (
-                        <input
-                            type="text"
-                            placeholder="Full Name"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            required
-                            className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
-                        />
+                        <>
+                            <input
+                                type="text"
+                                placeholder="Full Name"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                required
+                                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                            />
+
+                            <input
+                                type="text"
+                                placeholder="#123 Santa Cruz St. Purok 6"
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                required
+                                className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                            />
+                        </>
                     )}
 
                     <input
@@ -79,12 +126,36 @@ export default function Login() {
                         className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500"
                     />
 
+                    {isSignUp && (
+                        <div className="flex items-start space-x-2 text-sm text-gray-600">
+                            <input
+                                type="checkbox"
+                                checked={agreeTerms}
+                                onChange={() => setAgreeTerms(!agreeTerms)}
+                                className="mt-1"
+                            />
+                            <span>
+                                By signing up, you agree to our{" "}
+                                <a href="/terms" className="text-blue-600 hover:underline">
+                                    Terms & Conditions
+                                </a>{" "}
+                                and{" "}
+                                <a href="/privacy" className="text-blue-600 hover:underline">
+                                    Privacy Policy
+                                </a>.
+                            </span>
+                        </div>
+                    )}
+
                     {error && <p className="text-red-500 text-sm">{error}</p>}
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition"
+                        disabled={loading || (isSignUp && !agreeTerms)}
+                        className={`w-full ${loading || (isSignUp && !agreeTerms)
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            } text-white py-2 rounded-xl font-semibold transition`}
                     >
                         {loading ? "Processing..." : isSignUp ? "Sign Up" : "Log In"}
                     </button>
@@ -94,7 +165,10 @@ export default function Login() {
                     {isSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
                     <button
                         className="text-blue-600 hover:underline font-semibold"
-                        onClick={() => setIsSignUp(!isSignUp)}
+                        onClick={() => {
+                            setIsSignUp(!isSignUp);
+                            setAgreeTerms(false);
+                        }}
                     >
                         {isSignUp ? "Log In" : "Sign Up"}
                     </button>
