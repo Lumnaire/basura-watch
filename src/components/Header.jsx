@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -21,12 +21,12 @@ export default function Header() {
 
                 {/* Desktop Nav */}
                 <nav className="hidden md:flex space-x-6 text-sm font-medium items-center">
-                    <a href="/dashboard" className="hover:text-yellow-300 transition">
+                    <Link to="/dashboard" className="hover:text-yellow-300 transition">
                         Dashboard
-                    </a>
-                    <a href="/leaderboard" className="hover:text-yellow-300 transition">
+                    </Link>
+                    <Link to="/leaderboard" className="hover:text-yellow-300 transition">
                         Leaderboard
-                    </a>
+                    </Link>
                     <button
                         onClick={handleLogout}
                         className="ml-4 bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg text-sm font-semibold transition"
@@ -59,20 +59,20 @@ export default function Header() {
             {/* Mobile Dropdown Menu */}
             {menuOpen && (
                 <div className="absolute top-full left-0 w-full bg-blue-700 text-white flex flex-col md:hidden shadow-lg rounded-b-2xl z-50">
-                    <a
-                        href="/dashboard"
+                    <Link
+                        to="/dashboard"
                         className="px-6 py-3 hover:bg-blue-600 transition"
                         onClick={() => setMenuOpen(false)}
                     >
                         Dashboard
-                    </a>
-                    <a
-                        href="/leaderboard"
+                    </Link>
+                    <Link
+                        to="/leaderboard"
                         className="px-6 py-3 hover:bg-blue-600 transition"
                         onClick={() => setMenuOpen(false)}
                     >
                         Leaderboard
-                    </a>
+                    </Link>
                     <button
                         onClick={handleLogout}
                         className="px-6 py-3 text-left hover:bg-red-600 transition"
