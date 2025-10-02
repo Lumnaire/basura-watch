@@ -190,7 +190,7 @@ export default function Dashboard() {
 
                 {/* Rewards Section */}
                 <div className="bg-green-50 border-l-4 border-green-500 rounded-xl shadow-sm p-6">
-                    <h2 className="text-xl font-bold text-green-700 mb-3">🎁 Rewards for 2025 (Barangay Santa Cruz)</h2>
+                    <h2 className="text-xl font-bold text-green-700 mb-3">🎁 Rewards for 2025 (Claim at Barangay Office)</h2>
                     <ul className="space-y-2 text-gray-700">
                         <li>
                             🥇 <span className="font-semibold">Top 1</span> — 1 Sack of Rice
