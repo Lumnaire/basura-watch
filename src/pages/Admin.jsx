@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
     LineChart,
     Line,
@@ -115,24 +115,24 @@ export default function Admin() {
                 </div>
 
                 <nav className="flex flex-col space-y-4 text-sm font-medium flex-1 overflow-y-auto">
-                    <a
-                        href="/admin"
+                    <Link
+                        to="/admin"
                         className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
                     >
                         Dashboard
-                    </a>
-                    <a
-                        href="/admin/users"
+                    </Link>
+                    <Link
+                        to="/admin/users"
                         className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
                     >
                         Users
-                    </a>
-                    <a
-                        href="/leaderboard"
+                    </Link>
+                    <Link
+                        to="/leaderboard"
                         className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
                     >
                         Leaderboard
-                    </a>
+                    </Link>
                 </nav>
 
                 <button
