@@ -128,7 +128,7 @@ export default function Admin() {
                         Users
                     </Link>
                     <Link
-                        to="/leaderboard"
+                        to="admin/leaderboard"
                         className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
                     >
                         Leaderboard
