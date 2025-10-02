@@ -15,7 +15,10 @@ export default function Header() {
         <header className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white px-6 py-4 shadow-md rounded-b-2xl relative">
             <div className="flex items-center justify-between max-w-6xl mx-auto">
                 {/* Logo / Title */}
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-wide cursor-pointer" onClick={() => navigate("/dashboard")}>
+                <h1
+                    className="text-2xl md:text-3xl font-extrabold tracking-wide cursor-pointer"
+                    onClick={() => navigate("/dashboard")}
+                >
                     Basura<span className="text-yellow-300">Watch</span>
                 </h1>
 
@@ -48,39 +51,50 @@ export default function Header() {
                         stroke="currentColor"
                     >
                         {menuOpen ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h16"
+                            />
                         )}
                     </svg>
                 </button>
             </div>
 
-            {/* Mobile Dropdown Menu */}
-            {menuOpen && (
-                <div className="absolute top-full left-0 w-full bg-blue-700 text-white flex flex-col md:hidden shadow-lg rounded-b-2xl z-50">
-                    <Link
-                        to="/dashboard"
-                        className="px-6 py-3 hover:bg-blue-600 transition"
-                        onClick={() => setMenuOpen(false)}
-                    >
-                        Dashboard
-                    </Link>
-                    <Link
-                        to="/leaderboard"
-                        className="px-6 py-3 hover:bg-blue-600 transition"
-                        onClick={() => setMenuOpen(false)}
-                    >
-                        Leaderboard
-                    </Link>
-                    <button
-                        onClick={handleLogout}
-                        className="px-6 py-3 text-left hover:bg-red-600 transition"
-                    >
-                        Logout
-                    </button>
-                </div>
-            )}
+            {/* Mobile Dropdown Menu with animation */}
+            <div
+                className={`absolute top-full left-0 w-full bg-blue-700 text-white flex flex-col md:hidden shadow-lg rounded-b-2xl z-50 overflow-hidden transition-all duration-500 ease-in-out ${menuOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+            >
+                <Link
+                    to="/dashboard"
+                    className="px-6 py-3 hover:bg-blue-600 transition"
+                    onClick={() => setMenuOpen(false)}
+                >
+                    Dashboard
+                </Link>
+                <Link
+                    to="/leaderboard"
+                    className="px-6 py-3 hover:bg-blue-600 transition"
+                    onClick={() => setMenuOpen(false)}
+                >
+                    Leaderboard
+                </Link>
+                <button
+                    onClick={handleLogout}
+                    className="px-6 py-3 text-left hover:bg-red-600 transition"
+                >
+                    Logout
+                </button>
+            </div>
         </header>
     );
 }
