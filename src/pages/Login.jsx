@@ -22,30 +22,25 @@ export default function Login() {
         let authResponse;
 
         if (isSignUp) {
-            // SIGN UP
             authResponse = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: { full_name: fullName, location: location }, // ✅ include location
+                    data: { full_name: fullName, location },
                 },
             });
 
-            // Also insert into profiles table
-            const user = authResponse.data.user;
-            if (user) {
-                await supabase.from("profiles").insert([
-                    {
-                        id: user.id,
+            const signedUpUser = authResponse.data.user;
+            if (signedUpUser) {
+                await supabase.from("profiles")
+                    .update({
                         full_name: fullName,
-                        location: location,
-                        is_admin: false,
-                        pickup_status: false,
-                    },
-                ]);
+                        location,
+                    })
+                    .eq("id", signedUpUser.id);
             }
+
         } else {
-            // LOGIN
             authResponse = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -59,8 +54,24 @@ export default function Login() {
             return;
         }
 
+        const user = data.user || data.session?.user; // ✅ only declared once now
+
+
+        const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, email, is_admin")
+            .eq("id", user.id)
+            .single();
+
+        if (profileError) {
+            console.error("Profile fetch error:", profileError.message);
+        } else {
+            console.log("Fetched profile:", profile);
+        }
+
+
         // ✅ Fetch the profile of the logged-in user
-        const user = data.user || data.session?.user;
+
         if (user) {
             const { data: profile } = await supabase
                 .from("profiles")
@@ -71,7 +82,7 @@ export default function Login() {
             if (profile?.is_admin) {
                 navigate("/admin");
             } else {
-                navigate("/dashboard");
+                navigate("/dashboard");  // ✅ redirect non-admins to /
             }
         }
 
@@ -153,8 +164,8 @@ export default function Login() {
                         type="submit"
                         disabled={loading || (isSignUp && !agreeTerms)}
                         className={`w-full ${loading || (isSignUp && !agreeTerms)
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-blue-600 hover:bg-blue-700"
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
                             } text-white py-2 rounded-xl font-semibold transition`}
                     >
                         {loading ? "Processing..." : isSignUp ? "Sign Up" : "Log In"}

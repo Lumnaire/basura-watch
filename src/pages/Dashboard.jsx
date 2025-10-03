@@ -7,12 +7,50 @@ export default function Dashboard() {
     const [today, setToday] = useState(new Date());
     const [loading, setLoading] = useState(false);
     const [leaderboard, setLeaderboard] = useState([]);
+    const [countdown, setCountdown] = useState("");
 
     // Collection schedule
     const schedule = {
         Monday: "Plastic",
         Tuesday: "Biodegradable",
         Friday: "Non-Biodegradable",
+    };
+
+    // Countdown timer function
+    const updateCountdown = () => {
+        const currentYear = new Date().getFullYear();
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59); // Dec 31 of current year
+
+        const now = new Date();
+        const timeLeft = endOfYear - now;
+
+        if (timeLeft <= 0) {
+            setCountdown("Season ended! 🎉");
+            return;
+        }
+
+        // Calculate months, days, hours, minutes, seconds
+        const months = Math.floor(timeLeft / (1000 * 60 * 60 * 24 * 30.44));
+        const days = Math.floor((timeLeft % (1000 * 60 * 60 * 24 * 30.44)) / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+        // Format the countdown string
+        let countdownString = "";
+        if (months > 0) {
+            countdownString += `${months} month${months !== 1 ? 's' : ''} `;
+        }
+        if (days > 0) {
+            countdownString += `${days} day${days !== 1 ? 's' : ''} `;
+        }
+        if (months === 0) { // Only show hours if less than a month left
+            countdownString += `${hours}h ${minutes}m ${seconds}s`;
+        } else {
+            countdownString += `${hours}h`;
+        }
+
+        setCountdown(countdownString.trim());
     };
 
     // Fetch profile + leaderboard
@@ -33,17 +71,43 @@ export default function Dashboard() {
         async function fetchLeaderboard() {
             const { data, error } = await supabase
                 .from("profiles")
-                .select("id, full_name, points")
+                .select("id, full_name, points, is_admin")
                 .order("points", { ascending: false })
-                .limit(10);
+                .order("full_name", { ascending: true });
+
+            console.log("Leaderboard data:", data);
+            console.log("Leaderboard error:", error);
 
             if (!error && data) {
-                setLeaderboard(data);
+                // If is_admin column doesn't exist, filter manually in the frontend
+                const nonAdminUsers = data.filter(user => user.is_admin === false);
+                console.log("Non-admin users:", nonAdminUsers); // Debug log
+                setLeaderboard(nonAdminUsers);
+            } else {
+                // If there's an error, try without the is_admin filter
+                const { data: allData, error: allError } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, points")
+                    .order("points", { ascending: false })
+                    .order("full_name", { ascending: true });
+
+                if (!allError && allData) {
+                    console.log("All users data:", allData);
+                    setLeaderboard(allData);
+                }
             }
         }
 
         fetchProfile();
         fetchLeaderboard();
+
+        // Initialize countdown
+        updateCountdown();
+
+        // Update countdown every second
+        const countdownInterval = setInterval(updateCountdown, 1000);
+
+        return () => clearInterval(countdownInterval);
     }, []);
 
     // Calendar info
@@ -152,9 +216,17 @@ export default function Dashboard() {
 
                 {/* Leaderboard Section */}
                 <div className="bg-white shadow-md rounded-xl p-6 mb-8">
-                    <h2 className="text-xl font-bold text-blue-700 mb-4">
-                        🏆 Leaderboard — {new Date().getFullYear()}
-                    </h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h2 className="text-xl font-bold text-blue-700">
+                            🏆 Leaderboard — {new Date().getFullYear()}
+                        </h2>
+                        <div className="mt-2 sm:mt-0 px-4 py-2 bg-red-100 border border-red-300 rounded-lg">
+                            <span className="text-red-700 font-semibold text-sm">
+                                ⏳ Season ends in: {countdown}
+                            </span>
+                        </div>
+                    </div>
+
                     {leaderboard.length === 0 ? (
                         <p className="text-gray-500 text-center">No one is on the leaderboard yet.</p>
                     ) : (
@@ -168,20 +240,27 @@ export default function Dashboard() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {leaderboard.map((user, index) => (
-                                        <tr
-                                            key={user.id}
-                                            className="border-b hover:bg-gray-50 transition"
-                                        >
-                                            <td className="px-4 py-2 font-semibold text-blue-600">
-                                                #{index + 1}
-                                            </td>
-                                            <td className="px-4 py-2">{user.full_name}</td>
-                                            <td className="px-4 py-2 font-bold text-gray-700">
-                                                {user.points || 0}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {leaderboard.map((user, index) => {
+                                        const isCurrentUser = profile && user.id === profile.id;
+
+                                        return (
+                                            <tr
+                                                key={user.id}
+                                                className={`border-b transition ${isCurrentUser
+                                                    ? "bg-yellow-100 font-bold text-blue-900" // highlight logged-in user
+                                                    : "hover:bg-gray-50"
+                                                    }`}
+                                            >
+                                                <td className="px-4 py-2 font-semibold text-blue-600">
+                                                    #{index + 1}
+                                                </td>
+                                                <td className="px-4 py-2">{user.full_name}</td>
+                                                <td className="px-4 py-2 font-bold text-gray-700">
+                                                    {user.points || 0}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -190,7 +269,7 @@ export default function Dashboard() {
 
                 {/* Rewards Section */}
                 <div className="bg-green-50 border-l-4 border-green-500 rounded-xl shadow-sm p-6">
-                    <h2 className="text-xl font-bold text-green-700 mb-3">🎁 Rewards for 2025 (Claim at Barangay Office)</h2>
+                    <h2 className="text-xl font-bold text-green-700 mb-3">🎁 Rewards for {new Date().getFullYear() + 1} (Claim at Barangay Office)</h2>
                     <ul className="space-y-2 text-gray-700">
                         <li>
                             🥇 <span className="font-semibold">Top 1</span> — 1 Sack of Rice

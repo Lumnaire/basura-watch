@@ -10,35 +10,60 @@ export default function AdminUsers() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        async function fetchAdmin() {
+        async function fetchData() {
             const {
                 data: { user },
+                error: authError,
             } = await supabase.auth.getUser();
 
-            if (user) {
-                const { data, error } = await supabase
-                    .from("profiles")
-                    .select("full_name")
-                    .eq("id", user.id)
-                    .single();
+            if (authError) {
+                console.error("Auth error:", authError.message);
+                navigate("/"); // not logged in
+                return;
+            }
 
-                if (!error) setAdminProfile(data);
+            if (!user) {
+                navigate("/"); // no user session
+                return;
+            }
+
+            // ✅ get admin profile
+            const { data: profile, error: profileError } = await supabase
+                .from("profiles")
+                .select("id, full_name, is_admin")
+                .eq("id", user.id)
+                .single();
+
+            if (profileError) {
+                console.error("Profile fetch error:", profileError.message);
+                navigate("/");
+                return;
+            }
+
+            if (!profile.is_admin) {
+                // ✅ block non-admins from seeing this page
+                navigate("/dashboard");
+                return;
+            }
+
+            setAdminProfile(profile);
+
+            // ✅ fetch all non-admin users
+            const { data: usersData, error: usersError } = await supabase
+                .from("profiles")
+                .select("id, full_name, location, pickup_status")
+                .eq("is_admin", false)
+                .order("full_name", { ascending: true });
+
+            if (usersError) {
+                console.error("Users fetch error:", usersError.message);
+            } else {
+                setUsers(usersData || []);
             }
         }
 
-        async function fetchUsers() {
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("id, full_name, location, pickup_status")
-                .eq("is_admin", false) // ✅ only non-admin users
-                .order("full_name", { ascending: true });
-
-            if (!error) setUsers(data);
-        }
-
-        fetchAdmin();
-        fetchUsers();
-    }, []);
+        fetchData();
+    }, [navigate]);
 
     async function handleLogout() {
         await supabase.auth.signOut();
@@ -82,13 +107,22 @@ export default function AdminUsers() {
                 </div>
 
                 <nav className="flex flex-col space-y-4 text-sm font-medium flex-1">
-                    <a href="/admin" className="hover:bg-blue-600 px-4 py-2 rounded-lg transition">
+                    <a
+                        href="/admin"
+                        className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
+                    >
                         Dashboard
                     </a>
-                    <a href="/admin/users" className="hover:bg-blue-600 px-4 py-2 rounded-lg transition bg-blue-800">
+                    <a
+                        href="/admin/users"
+                        className="hover:bg-blue-600 px-4 py-2 rounded-lg transition bg-blue-800"
+                    >
                         Users
                     </a>
-                    <a href="/leaderboard" className="hover:bg-blue-600 px-4 py-2 rounded-lg transition">
+                    <a
+                        href="/leaderboard"
+                        className="hover:bg-blue-600 px-4 py-2 rounded-lg transition"
+                    >
                         Leaderboard
                     </a>
                 </nav>
@@ -119,7 +153,10 @@ export default function AdminUsers() {
                         <tbody>
                             {users.length === 0 ? (
                                 <tr>
-                                    <td colSpan="3" className="text-center py-6 text-gray-500">
+                                    <td
+                                        colSpan="3"
+                                        className="text-center py-6 text-gray-500"
+                                    >
                                         No users found.
                                     </td>
                                 </tr>
