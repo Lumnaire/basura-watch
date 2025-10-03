@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import { supabase } from "../lib/supabaseClient";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
     const [profile, setProfile] = useState(null);
@@ -176,7 +177,7 @@ export default function Dashboard() {
                             <span className="font-semibold text-green-800">trash is properly segregated</span>{" "}
                             before the collectors arrive. Following the waste management standards will earn you{" "}
                             <span className="font-semibold text-green-800">points</span> from collectors
-                            — boosting your standing on the <span className="text-blue-600">leaderboard</span>.
+                            — boosting your standing on the <span className="text-blue-600"><Link to="/leaderboard">leaderboard</Link></span>.
                         </p>
                     </div>
                 )}

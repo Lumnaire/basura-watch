@@ -52,8 +52,11 @@ export default function Leaderboard() {
                 .from("profiles")
                 .select("full_name, points")
                 .eq("is_admin", false) // Exclude admins from leaderboard
-                .order("points", { ascending: false })
+                .order("points", { ascending: false }) // Primary order: highest points first
+                .order("full_name", { ascending: true }) // Secondary order: alphabetical when points are equal
                 .limit(10);
+
+            console.log("Leaderboard data:", data); // Debug log to see the order
 
             if (!error && data) {
                 setLeaderboard(data);
@@ -95,8 +98,8 @@ export default function Leaderboard() {
 
                     {/* Countdown Timer */}
                     <div className={`mt-4 lg:mt-0 px-4 py-3 rounded-lg border font-semibold text-center ${seasonEnded
-                            ? "bg-green-100 border-green-400 text-green-800"
-                            : "bg-red-100 border-red-300 text-red-700"
+                        ? "bg-green-100 border-green-400 text-green-800"
+                        : "bg-red-100 border-red-300 text-red-700"
                         }`}>
                         <div className="text-sm">
                             {seasonEnded ? "🎉 Season Completed" : "⏳ Season Ends In"}
@@ -148,10 +151,10 @@ export default function Leaderboard() {
                                         <tr
                                             key={user.full_name}
                                             className={`border-b transition-all ${isTopThree
-                                                    ? `${rankColors[index]} font-bold`
-                                                    : index % 2 === 0
-                                                        ? "bg-gray-50"
-                                                        : "bg-white"
+                                                ? `${rankColors[index]} font-bold`
+                                                : index % 2 === 0
+                                                    ? "bg-gray-50"
+                                                    : "bg-white"
                                                 } ${seasonEnded && isTopThree ? 'animate-pulse' : ''}`}
                                         >
                                             <td className="px-6 py-4 font-bold">
@@ -160,9 +163,9 @@ export default function Leaderboard() {
                                                     {index === 1 && <span className="text-2xl">🥈</span>}
                                                     {index === 2 && <span className="text-2xl">🥉</span>}
                                                     <span className={`${index === 0 ? 'text-yellow-600' :
-                                                            index === 1 ? 'text-gray-600' :
-                                                                index === 2 ? 'text-orange-600' :
-                                                                    'text-blue-600'
+                                                        index === 1 ? 'text-gray-600' :
+                                                            index === 2 ? 'text-orange-600' :
+                                                                'text-blue-600'
                                                         }`}>
                                                         #{index + 1}
                                                     </span>
@@ -200,8 +203,8 @@ export default function Leaderboard() {
 
                 {/* Rewards Section */}
                 <div className={`border-l-4 p-6 rounded-lg shadow-md ${seasonEnded
-                        ? "bg-blue-50 border-blue-500"
-                        : "bg-green-50 border-green-500"
+                    ? "bg-blue-50 border-blue-500"
+                    : "bg-green-50 border-green-500"
                     }`}>
                     <h2 className={`text-xl font-bold mb-3 ${seasonEnded ? "text-blue-700" : "text-green-700"
                         }`}>
