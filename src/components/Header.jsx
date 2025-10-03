@@ -30,6 +30,9 @@ export default function Header() {
                     <Link to="/leaderboard" className="hover:text-yellow-300 transition">
                         Leaderboard
                     </Link>
+                    <Link to="/profile" className="hover:text-yellow-300 transition">
+                        Profile
+                    </Link>
                     <button
                         onClick={handleLogout}
                         className="ml-4 bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg text-sm font-semibold transition"
