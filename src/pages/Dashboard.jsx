@@ -19,7 +19,7 @@ export default function Dashboard() {
     // Countdown timer function
     const updateCountdown = () => {
         const currentYear = new Date().getFullYear();
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59); // Dec 31 of current year
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
 
         const now = new Date();
         const timeLeft = endOfYear - now;
@@ -29,14 +29,12 @@ export default function Dashboard() {
             return;
         }
 
-        // Calculate months, days, hours, minutes, seconds
         const months = Math.floor(timeLeft / (1000 * 60 * 60 * 24 * 30.44));
         const days = Math.floor((timeLeft % (1000 * 60 * 60 * 24 * 30.44)) / (1000 * 60 * 60 * 24));
         const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-        // Format the countdown string
         let countdownString = "";
         if (months > 0) {
             countdownString += `${months} month${months !== 1 ? 's' : ''} `;
@@ -44,7 +42,7 @@ export default function Dashboard() {
         if (days > 0) {
             countdownString += `${days} day${days !== 1 ? 's' : ''} `;
         }
-        if (months === 0) { // Only show hours if less than a month left
+        if (months === 0) {
             countdownString += `${hours}h ${minutes}m ${seconds}s`;
         } else {
             countdownString += `${hours}h`;
@@ -61,7 +59,7 @@ export default function Dashboard() {
 
             const { data, error } = await supabase
                 .from("profiles")
-                .select("id, full_name, location, pickup_status, points")
+                .select("id, full_name, location, pickup_status, points, collected")
                 .eq("id", user.id)
                 .single();
 
@@ -75,36 +73,16 @@ export default function Dashboard() {
                 .order("points", { ascending: false })
                 .order("full_name", { ascending: true });
 
-            console.log("Leaderboard data:", data);
-            console.log("Leaderboard error:", error);
-
             if (!error && data) {
-                // If is_admin column doesn't exist, filter manually in the frontend
                 const nonAdminUsers = data.filter(user => user.is_admin === false);
-                console.log("Non-admin users:", nonAdminUsers); // Debug log
                 setLeaderboard(nonAdminUsers);
-            } else {
-                // If there's an error, try without the is_admin filter
-                const { data: allData, error: allError } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, points")
-                    .order("points", { ascending: false })
-                    .order("full_name", { ascending: true });
-
-                if (!allError && allData) {
-                    console.log("All users data:", allData);
-                    setLeaderboard(allData);
-                }
             }
         }
 
         fetchProfile();
         fetchLeaderboard();
 
-        // Initialize countdown
         updateCountdown();
-
-        // Update countdown every second
         const countdownInterval = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(countdownInterval);
@@ -123,15 +101,44 @@ export default function Dashboard() {
 
         const { error } = await supabase
             .from("profiles")
-            .update({ pickup_status: true })
+            .update({
+                pickup_status: true,
+                collected: false // Reset collected status when requesting new pickup
+            })
             .eq("id", profile.id);
 
         if (!error) {
-            setProfile({ ...profile, pickup_status: true });
+            setProfile({ ...profile, pickup_status: true, collected: false });
         }
 
         setLoading(false);
     }
+
+    // Reset collection status at the start of each day
+    useEffect(() => {
+        const resetCollectionStatus = async () => {
+            if (profile && profile.collected) {
+                // Reset collected status for new day
+                const { error } = await supabase
+                    .from("profiles")
+                    .update({ collected: false })
+                    .eq("id", profile.id);
+
+                if (!error) {
+                    setProfile(prev => ({ ...prev, collected: false }));
+                }
+            }
+        };
+
+        // Reset at midnight
+        const now = new Date();
+        const midnight = new Date(now);
+        midnight.setHours(24, 0, 0, 0);
+        const timeUntilMidnight = midnight - now;
+
+        const timeoutId = setTimeout(resetCollectionStatus, timeUntilMidnight);
+        return () => clearTimeout(timeoutId);
+    }, [profile]);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -146,19 +153,33 @@ export default function Dashboard() {
                     <span className="text-blue-600 font-semibold">{collectionToday}</span>
                 </p>
 
-                {/* ✅ Reminder Card */}
-                <div className="mb-6 p-5 border-l-4 border-green-500 bg-green-50 rounded-lg shadow-sm">
-                    <h2 className="text-lg md:text-xl font-bold text-green-700 mb-1">
-                        ♻️ Reminder for Today
-                    </h2>
-                    <p className="text-gray-700 text-sm md:text-base leading-relaxed">
-                        Please ensure your{" "}
-                        <span className="font-semibold text-green-800">trash is properly segregated</span>{" "}
-                        before the collectors arrive. Following the waste management standards will earn you{" "}
-                        <span className="font-semibold text-green-800">points</span> from collectors
-                        — boosting your standing on the <span className="text-blue-600">leaderboard</span>.
-                    </p>
-                </div>
+                {/* Collection Status Card */}
+                {profile?.collected && (
+                    <div className="mb-6 p-5 border-l-4 border-blue-500 bg-blue-50 rounded-lg shadow-sm">
+                        <h2 className="text-lg md:text-xl font-bold text-blue-700 mb-1">
+                            ✅ Collection Completed
+                        </h2>
+                        <p className="text-gray-700 text-sm md:text-base leading-relaxed">
+                            Your trash has been collected today. You can request collection again tomorrow.
+                        </p>
+                    </div>
+                )}
+
+                {/* Reminder Card */}
+                {!profile?.collected && (
+                    <div className="mb-6 p-5 border-l-4 border-green-500 bg-green-50 rounded-lg shadow-sm">
+                        <h2 className="text-lg md:text-xl font-bold text-green-700 mb-1">
+                            ♻️ Reminder for Today
+                        </h2>
+                        <p className="text-gray-700 text-sm md:text-base leading-relaxed">
+                            Please ensure your{" "}
+                            <span className="font-semibold text-green-800">trash is properly segregated</span>{" "}
+                            before the collectors arrive. Following the waste management standards will earn you{" "}
+                            <span className="font-semibold text-green-800">points</span> from collectors
+                            — boosting your standing on the <span className="text-blue-600">leaderboard</span>.
+                        </p>
+                    </div>
+                )}
 
                 {/* Location */}
                 {profile?.location && (
@@ -167,9 +188,23 @@ export default function Dashboard() {
                     </p>
                 )}
 
+                {/* Points Display */}
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                    <p className="text-gray-700">
+                        🏅 Your current points: <span className="font-bold text-yellow-700 text-lg">{profile?.points || 0}</span>
+                    </p>
+                </div>
+
                 {/* Pickup Button */}
                 <div className="mb-8">
-                    {isCollectionDay ? (
+                    {profile?.collected ? (
+                        <button
+                            disabled
+                            className="px-6 py-3 rounded-xl font-semibold bg-blue-500 text-white cursor-not-allowed w-full sm:w-auto"
+                        >
+                            ✅ Already Collected Today
+                        </button>
+                    ) : isCollectionDay ? (
                         <button
                             onClick={handlePickupRequest}
                             disabled={loading || profile?.pickup_status}
@@ -178,7 +213,7 @@ export default function Dashboard() {
                                 : "bg-blue-600 hover:bg-blue-700 text-white"
                                 }`}
                         >
-                            {profile?.pickup_status ? "✅ Pickup Requested" : "🚛 Collect My Trash"}
+                            {profile?.pickup_status ? "✅ Pickup Requested - Waiting for Collection" : "🚛 Request Trash Collection"}
                         </button>
                     ) : (
                         <button
@@ -190,6 +225,7 @@ export default function Dashboard() {
                     )}
                 </div>
 
+                {/* Rest of your existing calendar, leaderboard, and rewards sections remain the same */}
                 {/* Calendar Section */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 text-center mb-10">
                     {days.map((day) => {
@@ -247,7 +283,7 @@ export default function Dashboard() {
                                             <tr
                                                 key={user.id}
                                                 className={`border-b transition ${isCurrentUser
-                                                    ? "bg-yellow-100 font-bold text-blue-900" // highlight logged-in user
+                                                    ? "bg-yellow-100 font-bold text-blue-900"
                                                     : "hover:bg-gray-50"
                                                     }`}
                                             >
